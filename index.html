@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLATINUM LASER — מעקב לקוחות</title>
+    <style>
+        :root {
+            --gold:#C9A84C; --gold-light:#E5C97E;
+            --bg:#0d0d0d; --surface:#1a1a1a; --surface2:#242424;
+            --border:#2e2e2e; --text:#f0f0f0; --muted:#888;
+            --red:#e05252; --green:#4caf7c; --yellow:#f0b429;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;direction:rtl}
+        header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+        .logo-text{font-size:17px;font-weight:800;color:var(--gold);letter-spacing:1.5px}
+        .logo-sub{font-size:11px;color:var(--muted);margin-top:2px}
+        .hdr{display:flex;gap:8px}
+        .btn-add{background:var(--gold);color:#000;border:none;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+        .btn-ico{background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:10px 12px;border-radius:8px;font-size:16px;cursor:pointer}
+        main{max-width:620px;margin:0 auto;padding:20px 14px 120px}
+        .banner{background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+        .banner-text{font-size:13px;color:var(--gold-light);flex:1}
+        .btn-banner{background:var(--gold);color:#000;border:none;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+        .stats{display:flex;gap:10px;margin-bottom:20px}
+        .stat-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+        .stat-num{font-size:26px;font-weight:800;line-height:1}
+        .stat-label{font-size:11px;color:var(--muted);margin-top:4px}
+        .s-red .stat-num{color:var(--red)}.s-red{border-color:rgba(224,82,82,.4)}
+        .s-gold .stat-num{color:var(--gold)}
+        .s-yellow .stat-num{color:var(--yellow)}
+        .search-bar{position:relative;margin-bottom:14px}
+        .search-bar input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:11px 14px 11px 36px;border-radius:9px;font-size:15px;font-family:inherit}
+        .search-bar input:focus{outline:none;border-color:var(--gold)}
+        .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+        .tabs{display:flex;margin-bottom:16px;background:var(--surface2);border-radius:10px;padding:4px}
+        .tab{flex:1;text-align:center;padding:9px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:7px}
+        .tab.active{background:var(--surface);color:var(--text)}
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+        .card.urgent{border-color:rgba(224,82,82,.5);background:rgba(224,82,82,.05)}
+        .card.soon{border-color:rgba(240,180,41,.3)}
+        .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0}
+        .av-urgent{background:rgba(224,82,82,.18);color:var(--red)}
+        .av-soon{background:rgba(240,180,41,.18);color:var(--yellow)}
+        .av-ok{background:rgba(201,168,76,.12);color:var(--gold)}
+        .av-none{background:var(--surface2);color:var(--muted)}
+        .card-info{flex:1;min-width:0;cursor:pointer}
+        .card-name{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .card-area{font-size:11px;color:var(--muted);margin-top:2px}
+        .card-status{font-size:12px;margin-top:4px}
+        .st-urgent{color:var(--red)}.st-soon{color:var(--yellow)}.st-ok{color:var(--green)}.st-none{color:var(--muted)}
+        .card-actions{display:flex;gap:6px;flex-shrink:0}
+        .btn-wa{background:#25D366;color:#fff;border:none;padding:8px 11px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center}
+        .btn-treated{background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:8px 11px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit}
+        .btn-del{background:transparent;color:var(--border);border:none;padding:8px 6px;font-size:16px;cursor:pointer}
+        .no-phone{font-size:11px;color:var(--muted);border:1px dashed var(--border);padding:6px 8px;border-radius:6px}
+        .empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:14px}
+        .empty-icon{font-size:36px;margin-bottom:10px}
+        .loading{text-align:center;padding:40px 16px;color:var(--muted)}
+        .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:flex-end;justify-content:center}
+        .overlay.open{display:flex}
+        .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:24px 18px 48px;width:100%;max-width:620px;max-height:90vh;overflow-y:auto}
+        .mh{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+        .modal h2{font-size:18px;color:var(--gold);margin-bottom:20px}
+        .field{margin-bottom:14px}
+        .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+        .field input,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:13px 14px;border-radius:9px;font-size:15px;font-family:inherit}
+        .field input:focus,.field textarea:focus{outline:none;border-color:var(--gold)}
+        .field input[type="tel"],.field input[type="date"]{direction:ltr;text-align:right}
+        .field textarea{resize:vertical;min-height:70px;font-size:14px}
+        .field small{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+        .modal-btns{display:flex;gap:10px;margin-top:20px}
+        .btn-primary{flex:1;background:var(--gold);color:#000;border:none;padding:15px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+        .btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:15px 20px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit}
+        .btn-danger{background:rgba(224,82,82,.15);color:var(--red);border:1px solid rgba(224,82,82,.3);padding:15px 16px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit}
+        .ss-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;margin-bottom:16px;font-size:13px}
+        .ss-bar.ok{background:rgba(76,175,124,.1);border:1px solid rgba(76,175,124,.3);color:var(--green)}
+        .ss-bar.no{background:rgba(136,136,136,.1);border:1px solid var(--border);color:var(--muted)}
+        .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 22px;border-radius:50px;font-size:14px;font-weight:600;transition:transform .3s ease;z-index:300;white-space:nowrap}
+        .toast.show{transform:translateX(-50%) translateY(0)}
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <div class="logo-text">PLATINUM LASER</div>
+        <div class="logo-sub" id="sync-lbl">מעקב לקוחות</div>
+    </div>
+    <div class="hdr">
+        <button class="btn-ico" onclick="openSettings()" title="הגדרות">⚙️</button>
+        <button class="btn-add" onclick="openAdd()">+ לקוח חדש</button>
+    </div>
+</header>
+
+<main>
+    <div id="banner" class="banner" style="display:none">
+        <div class="banner-text">🔗 חבר GitHub כדי לסנכרן בין מחשב לנייד</div>
+        <button class="btn-banner" onclick="openSettings()">הגדרות</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card s-red"><div class="stat-num" id="st-urg">—</div><div class="stat-label">צריכים הודעה</div></div>
+        <div class="stat-card s-gold"><div class="stat-num" id="st-tot">—</div><div class="stat-label">סה"כ לקוחות</div></div>
+        <div class="stat-card s-yellow"><div class="stat-num" id="st-soon">—</div><div class="stat-label">השבוע הקרוב</div></div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="q" placeholder="חיפוש לפי שם..." oninput="render()"/>
+        <span class="si">🔍</span>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" id="tab-all"    onclick="setTab('all')">הכול</div>
+        <div class="tab"        id="tab-urgent" onclick="setTab('urgent')">צריכים הודעה</div>
+        <div class="tab"        id="tab-ok"     onclick="setTab('ok')">בסדר</div>
+    </div>
+
+    <div id="list"><div class="loading"><div class="spinner"></div>טוען...</div></div>
+</main>
+
+<!-- Add/Edit -->
+<div class="overlay" id="mo" onclick="ooc(event,'mo')">
+    <div class="modal">
+        <div class="mh"></div>
+        <h2 id="mo-title">לקוח חדש</h2>
+        <div class="field"><label>שם מלא</label><input type="text" id="f-name" autocomplete="off"/></div>
+        <div class="field"><label>מספר טלפון</label><input type="tel" id="f-phone"/></div>
+        <div class="field"><label>אזור בגוף</label><input type="text" id="f-area" placeholder="צוואר, פנים מלא..."/></div>
+        <div class="field"><label>תאריך טיפול אחרון</label><input type="date" id="f-date"/></div>
+        <div class="field"><label>הערות</label><textarea id="f-notes"></textarea></div>
+        <input type="hidden" id="f-id"/>
+        <div class="modal-btns">
+            <button class="btn-primary"   onclick="save()">שמירה</button>
+            <button class="btn-secondary" onclick="close('mo')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings -->
+<div class="overlay" id="so" onclick="ooc(event,'so')">
+    <div class="modal">
+        <div class="mh"></div>
+        <h2>⚙️ הגדרות</h2>
+        <div id="ss-status" class="ss-bar no">⚪ לא מחובר — נתונים שמורים מקומית בלבד</div>
+        <div class="field">
+            <label>GitHub Token</label>
+            <input type="text" id="s-token" dir="ltr" placeholder="ghp_... או gho_..."/>
+            <small>Settings → Developer settings → Personal access tokens → Classic → repo scope</small>
+        </div>
+        <div class="modal-btns">
+            <button class="btn-primary"   onclick="saveSets()">חיבור</button>
+            <button class="btn-danger"    onclick="clearSets()">נתק</button>
+            <button class="btn-secondary" onclick="close('so')">סגור</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DAYS=40, SOON=7;
+const LS_DATA='pl_v3', LS_CFG='pl_gh_cfg', LS_SHA='pl_gh_sha';
+const GH_OWNER='eliav951536-dot', GH_REPO='platinum-laser-data';
+
+// ── GitHub API ──
+function cfg(){ try{return JSON.parse(localStorage.getItem(LS_CFG)||'null')}catch{return null} }
+function ok(){ const c=cfg(); return !!(c?.token) }
+function ghH(token){ return {'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'} }
+
+async function ghRead(){
+    const c=cfg(); if(!c) return null;
+    const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/customers.json`,{headers:ghH(c.token)});
+    if(!r.ok){console.error('ghRead',r.status);return null}
+    const j=await r.json();
+    localStorage.setItem(LS_SHA,j.sha);
+    return JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));
+}
+
+async function ghWrite(arr){
+    const c=cfg(); if(!c) return;
+    const sha=localStorage.getItem(LS_SHA);
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(arr,null,2))));
+    const body=JSON.stringify({message:'update',content,...(sha?{sha}:{})});
+    const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/customers.json`,
+        {method:'PUT',headers:{...ghH(c.token),'Content-Type':'application/json'},body});
+    if(!r.ok){console.error('ghWrite',r.status,await r.text());return}
+    const j=await r.json();
+    localStorage.setItem(LS_SHA,j.content.sha);
+}
+
+// ── Data ──
+let data=[];
+function saveLocal(d){ localStorage.setItem(LS_DATA,JSON.stringify(d)) }
+function loadLocal(){ try{return JSON.parse(localStorage.getItem(LS_DATA)||'[]')}catch{return[]} }
+
+async function loadData(){
+    if(ok()){
+        const rows=await ghRead();
+        if(rows){data=rows;saveLocal(data);setLbl('מסונכרן עם GitHub ☁️');document.getElementById('banner').style.display='none';return}
+    }
+    data=loadLocal();
+    setLbl('מקומי (ללא סנכרון)');
+    if(!ok()) document.getElementById('banner').style.display='flex';
+}
+
+async function persist(){
+    saveLocal(data);
+    if(ok()) ghWrite(data).catch(console.error); // async, don't block UI
+}
+
+// ── Seed ──
+const SEED=[
+  {id:"1",  name:"אבנר עמר",           phone:"",           area:"צוואר",               lastTreatment:"2025-09-15", notes:""},
+  {id:"2",  name:"אברהם חדד",          phone:"527154919",  area:"צוואר",               lastTreatment:"2026-03-24", notes:""},
+  {id:"3",  name:"אהרון פסל",           phone:"",           area:"צוואר ולחיים",        lastTreatment:"2026-03-19", notes:""},
+  {id:"4",  name:"אלון גרשון",          phone:"505636613",  area:"חולצה קצרה מלא",      lastTreatment:"2026-05-24", notes:"לקוח מספרה"},
+  {id:"5",  name:"אלי זאהן",            phone:"533168679",  area:"צוואר ולחיים",        lastTreatment:"2025-06-30", notes:""},
+  {id:"6",  name:"אליה אמריקאי",        phone:"535621839",  area:"מצח וגבות",           lastTreatment:"2025-05-04", notes:""},
+  {id:"7",  name:"אליה כאקשור",         phone:"535314666",  area:"פנים מלא",            lastTreatment:"2026-03-24", notes:""},
+  {id:"8",  name:"אליה רודריגז",        phone:"559776140",  area:"עורף",                lastTreatment:"2025-08-31", notes:""},
+  {id:"9",  name:"אליהו עמר",           phone:"508800732",  area:"פנים מלא",            lastTreatment:"2026-01-28", notes:"ליד לחזה ובטן"},
+  {id:"10", name:"אליהו שבתאי",         phone:"527141942",  area:"צוואר ועורף",         lastTreatment:"2026-05-28", notes:""},
+  {id:"11", name:"אליעזר כלפון",        phone:"559875201",  area:"צוואר ולחיים",        lastTreatment:"2025-07-22", notes:""},
+  {id:"12", name:"אליקים בוקובזה",      phone:"527132171",  area:"בין הגבות",           lastTreatment:"2026-01-22", notes:""},
+  {id:"13", name:"אלירן אדרי",          phone:"527601854",  area:"צוואר ועורף",         lastTreatment:"2025-09-01", notes:""},
+  {id:"14", name:"אלמוג שלו",           phone:"533372721",  area:"עורף",                lastTreatment:"2025-11-11", notes:""},
+  {id:"15", name:"אריאל כהן",           phone:"556722138",  area:"גבות צוואר ולחיים",   lastTreatment:"2026-03-30", notes:""},
+  {id:"16", name:"אשר ארבוב",           phone:"548491447",  area:"לחיים",               lastTreatment:"2025-04-06", notes:""},
+  {id:"17", name:"בנימין אילוז",         phone:"504180502",  area:"צוואר",               lastTreatment:"2025-01-31", notes:""},
+  {id:"18", name:"גד חמדי",             phone:"533316663",  area:"עורף",                lastTreatment:"2025-04-04", notes:""},
+  {id:"19", name:"דביר אסידון",          phone:"548436885",  area:"לחיים וצוואר",        lastTreatment:"2025-03-29", notes:""},
+  {id:"20", name:"דוד ישי",             phone:"",           area:"אוזנים ופס גופיה",    lastTreatment:"2026-01-04", notes:""},
+  {id:"21", name:"דוד נעים",            phone:"556790067",  area:"צוואר",               lastTreatment:"2025-06-16", notes:""},
+  {id:"22", name:"דניאל אלקובי",        phone:"533195172",  area:"צוואר ופס גופיה",     lastTreatment:"2026-02-26", notes:""},
+  {id:"23", name:"טוהר פרפרה",          phone:"556738481",  area:"פנים מלא",            lastTreatment:"2026-01-07", notes:""},
+  {id:"24", name:"יאיר ויזאן",          phone:"533118249",  area:"עורף",                lastTreatment:"2025-10-19", notes:""},
+  {id:"25", name:"יהונתן אלבז",         phone:"544273003",  area:"לחיים גבות אף",       lastTreatment:"2026-03-22", notes:""},
+  {id:"26", name:"יהונתן נדב",          phone:"",           area:"לחיים וצוואר",        lastTreatment:"2026-03-23", notes:""},
+  {id:"27", name:"יואל אבלסון",         phone:"583259358",  area:"לחיים",               lastTreatment:"2025-03-06", notes:""},
+  {id:"28", name:"יונה בוקובזה",        phone:"559442109",  area:"צוואר ולחיים",        lastTreatment:"2025-04-06", notes:""},
+  {id:"29", name:"יונתן ינון אהרון",    phone:"587007307",  area:"לחיים וגב",           lastTreatment:"2026-01-01", notes:"לקוח מספרה"},
+  {id:"30", name:"יונתן עטר",           phone:"544793852",  area:"לחיים וצוואר",        lastTreatment:"2025-09-08", notes:""},
+  {id:"31", name:"יוסי כהן",            phone:"",           area:"לחיים וצוואר",        lastTreatment:"2026-03-24", notes:""},
+  {id:"32", name:"יוסי שחף",            phone:"546930509",  area:"לחיים וצוואר",        lastTreatment:"2026-05-18", notes:""},
+  {id:"33", name:"יצחק זאבי",           phone:"864488608",  area:"לחיים וצוואר",        lastTreatment:"2026-03-24", notes:""},
+  {id:"34", name:"ישראל אלבזיז",        phone:"535479755",  area:"פנים מלא",            lastTreatment:"2026-05-20", notes:""},
+  {id:"35", name:"ישראל כהן",           phone:"544464292",  area:"פנים וגופיה קצרה",    lastTreatment:"2026-05-14", notes:""},
+  {id:"36", name:"ישראל מעלימי",        phone:"534982618",  area:"גבות",                lastTreatment:"2026-05-29", notes:""},
+  {id:"37", name:"ישראל סבג",           phone:"527513742",  area:"אוזניים",             lastTreatment:"2026-02-27", notes:""},
+  {id:"38", name:"כפיר זטלאוי",         phone:"",           area:"לחיים וצוואר",        lastTreatment:"2026-03-24", notes:""},
+  {id:"39", name:"מאיר טייב",           phone:"",           area:"לחיים",               lastTreatment:"2025-10-23", notes:""},
+  {id:"40", name:"מיכאל כהן",           phone:"534181532",  area:"גבות מלא",            lastTreatment:"2026-03-19", notes:""},
+  {id:"41", name:"מיכאל כהן שכן",       phone:"532398284",  area:"עורף וצוואר",         lastTreatment:"2026-03-24", notes:""},
+  {id:"42", name:"מיכל זטלאוי",         phone:"507445411",  area:"גוף מלא",             lastTreatment:"2026-01-20", notes:""},
+  {id:"43", name:"מנשה שטרסברג",        phone:"",           area:"פס גופיה עורף כתף",   lastTreatment:"2026-04-25", notes:""},
+  {id:"44", name:"משה זטלאוי",          phone:"534126640",  area:"פס גופיה",            lastTreatment:"2025-12-18", notes:""},
+  {id:"45", name:"משה קסיר",            phone:"528889949",  area:"פנים מלא",            lastTreatment:"2026-05-28", notes:""},
+  {id:"46", name:"מתן וועקנין",          phone:"542615090",  area:"לחיים גבות צוואר",    lastTreatment:"2025-12-10", notes:"תיחזוק"},
+  {id:"47", name:"נדב מורטוב",          phone:"508725257",  area:"לחיים וצוואר",        lastTreatment:"2025-03-26", notes:""},
+  {id:"48", name:"נהוראי ביטון",         phone:"583279108",  area:"פנים מלא",            lastTreatment:"2025-04-06", notes:""},
+  {id:"49", name:"נתנאל זטלאוי",        phone:"539542194",  area:"חולצה קצרה",          lastTreatment:"2025-06-29", notes:""},
+  {id:"50", name:"נתנאל פרץ",           phone:"534512028",  area:"פנים מלא",            lastTreatment:"2025-04-03", notes:""},
+  {id:"51", name:"עובדיה מויאל",        phone:"",           area:"שפם ושפיץ",           lastTreatment:"2025-08-21", notes:""},
+  {id:"52", name:"פרי רחמים",           phone:"528968444",  area:"חזה בטן צוואר",       lastTreatment:"2025-08-21", notes:""},
+  {id:"53", name:"רחמים נחום",          phone:"556797273",  area:"פנים מלא",            lastTreatment:"2025-06-26", notes:""},
+  {id:"54", name:"רפאל איפרגן",         phone:"504181585",  area:"צוואר עורף אוזנים",   lastTreatment:"2026-03-25", notes:""},
+  {id:"55", name:"שוקי בגדדי כהן",      phone:"524721246",  area:"פנים",                lastTreatment:"2026-05-14", notes:""},
+  {id:"56", name:"שי כהן",              phone:"548481575",  area:"חזה",                 lastTreatment:"2026-03-18", notes:""},
+  {id:"57", name:"שלו חנן",             phone:"584515990",  area:"לחיים וצוואר",        lastTreatment:"2026-03-23", notes:""},
+  {id:"58", name:"שם טוב יצחק",         phone:"548407751",  area:"פנים מלא",            lastTreatment:"2026-03-25", notes:""},
+  {id:"59", name:"שמואל רבינוביץ",      phone:"504154508",  area:"לחיים",               lastTreatment:"2026-05-05", notes:""},
+  {id:"60", name:"שמעון זטלאוי א",      phone:"",           area:"פנים מלא",            lastTreatment:"2026-02-22", notes:""},
+  {id:"61", name:"שמעון זטלאוי ב",      phone:"503844980",  area:"פנים מלא",            lastTreatment:"2026-01-20", notes:""},
+  {id:"62", name:"שמעון לוי",           phone:"552618364",  area:"פנים מלא",            lastTreatment:"2026-05-13", notes:"מתקזז עם תספורות"},
+  {id:"63", name:"שמעון מעלימי",        phone:"502725910",  area:"פנים מלא",            lastTreatment:"2025-12-02", notes:""},
+  {id:"64", name:"תהילה זטלאוי",        phone:"535833475",  area:"כל הגוף",             lastTreatment:"2026-01-20", notes:"משלמת בעבודות בית"},
+  {id:"65", name:"יונתן אמסלם",         phone:"",           area:"פנים מלא",            lastTreatment:"2026-03-25", notes:""},
+  {id:"66", name:"יאיר הירשנזון",       phone:"533105985",  area:"לחיים",               lastTreatment:"2026-05-29", notes:""},
+  {id:"67", name:"ישראל מאיר אוחנה",    phone:"527149833",  area:"לחיים וצוואר",        lastTreatment:"2026-03-30", notes:"לא לקחתי לו כסף"},
+  {id:"68", name:"יוסף קטן",            phone:"534140679",  area:"חולצה קצרה",          lastTreatment:"2026-05-12", notes:"הוראת קבע באשראי"},
+  {id:"69", name:"שמואל דרור",          phone:"",           area:"גוף מלא בלי פנים",    lastTreatment:"2026-05-26", notes:"הוראת קבע באשראי"},
+  {id:"70", name:"יראת משעלי",          phone:"525458445",  area:"גוף מלא",             lastTreatment:"2026-05-25", notes:""}
+];
+
+// ── Utils ──
+const today=()=>new Date().toISOString().split('T')[0];
+function daysSince(d){
+    if(!d)return null;
+    const a=new Date(d),b=new Date();
+    a.setHours(0,0,0,0);b.setHours(0,0,0,0);
+    return Math.floor((b-a)/86400000);
+}
+function phoneClean(p){if(!p)return'';let n=p.replace(/\D/g,'');if(n.length===9)n='0'+n;return n.replace(/^0/,'972')}
+function waLink(c){
+    const m=`היי ${c.name}, מה שלומך?\nראיתי שעבר קצת זמן מהטיפול האחרון שלך בלייזר.${c.area?' ('+c.area+')':''}\n\nכדי לשמור על ההתקדמות ולהגיע לתוצאה טובה, חשוב לא לפתוח פער גדול מדי בין הטיפולים.\nרוצה שאקבע לך תור להמשך הסדרה?`;
+    return`https://wa.me/${phoneClean(c.phone)}?text=${encodeURIComponent(m)}`;
+}
+function setLbl(t){document.getElementById('sync-lbl').textContent=t}
+function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2800)}
+
+// ── Actions ──
+async function markTreated(id){
+    const c=data.find(x=>x.id===id);if(!c)return;
+    c.lastTreatment=today();await persist();
+    toast(`✅ ${c.name} — טיפול נרשם`);render();
+}
+async function delCustomer(id){
+    const c=data.find(x=>x.id===id);
+    if(!confirm(`למחוק את ${c?.name}?`))return;
+    data=data.filter(x=>x.id!==id);await persist();render();
+}
+
+// ── Modals ──
+let curTab='all';
+function ooc(e,id){if(e.target.id===id)close(id)}
+function close(id){document.getElementById(id).classList.remove('open')}
+
+function openAdd(){
+    document.getElementById('mo-title').textContent='לקוח חדש';
+    document.getElementById('f-id').value='';
+    document.getElementById('f-name').value='';
+    document.getElementById('f-phone').value='';
+    document.getElementById('f-area').value='';
+    document.getElementById('f-date').value=today();
+    document.getElementById('f-notes').value='';
+    document.getElementById('mo').classList.add('open');
+    setTimeout(()=>document.getElementById('f-name').focus(),200);
+}
+function openEdit(id){
+    const c=data.find(x=>x.id===id);if(!c)return;
+    document.getElementById('mo-title').textContent='עריכת לקוח';
+    document.getElementById('f-id').value=c.id;
+    document.getElementById('f-name').value=c.name;
+    document.getElementById('f-phone').value=c.phone||'';
+    document.getElementById('f-area').value=c.area||'';
+    document.getElementById('f-date').value=c.lastTreatment||'';
+    document.getElementById('f-notes').value=c.notes||'';
+    document.getElementById('mo').classList.add('open');
+}
+async function save(){
+    const id=document.getElementById('f-id').value;
+    const name=document.getElementById('f-name').value.trim();
+    const phone=document.getElementById('f-phone').value.trim();
+    const area=document.getElementById('f-area').value.trim();
+    const date=document.getElementById('f-date').value;
+    const notes=document.getElementById('f-notes').value.trim();
+    if(!name){alert('יש להכניס שם');return}
+    if(id){const c=data.find(x=>x.id===id);if(c)Object.assign(c,{name,phone,area,lastTreatment:date||null,notes})}
+    else data.push({id:Date.now().toString(),name,phone,area,lastTreatment:date||null,notes});
+    await persist();close('mo');toast(`✅ ${name} נשמר`);render();
+}
+
+// ── Settings ──
+function openSettings(){
+    document.getElementById('s-token').value=cfg()?.token||'';
+    updSS();
+    document.getElementById('so').classList.add('open');
+}
+function updSS(){
+    const el=document.getElementById('ss-status');
+    if(ok()){el.className='ss-bar ok';el.textContent='🟢 מחובר ל-GitHub — נתונים מסונכרנים'}
+    else{el.className='ss-bar no';el.textContent='⚪ לא מחובר — נתונים שמורים מקומית בלבד'}
+}
+async function saveSets(){
+    const token=document.getElementById('s-token').value.trim();
+    if(!token){alert('יש להכניס GitHub Token');return}
+    localStorage.setItem(LS_CFG,JSON.stringify({token}));
+    close('so');toast('מחבר ל-GitHub...');
+    const existing=await ghRead();
+    if(!existing||!existing.length){await ghWrite(data);toast(`☁️ ${data.length} לקוחות הועלו`)}
+    await loadData();render();
+}
+function clearSets(){
+    if(!confirm('לנתק מ-GitHub?'))return;
+    localStorage.removeItem(LS_CFG);localStorage.removeItem(LS_SHA);
+    setLbl('מקומי');document.getElementById('banner').style.display='flex';
+    toast('נותק');updSS();
+}
+
+// ── Tabs ──
+function setTab(t){
+    curTab=t;
+    ['all','urgent','ok'].forEach(x=>document.getElementById('tab-'+x).classList.toggle('active',x===t));
+    render();
+}
+
+// ── Render ──
+function cardHTML(c){
+    const d=daysSince(c.lastTreatment);
+    let urg=false,soon=false,stC,stT,avC;
+    if(d===null){stC='st-none';stT='טרם נרשם טיפול';avC='av-none'}
+    else if(d>=DAYS){urg=true;stC='st-urgent';stT=`⚠️ ${d} ימים מהטיפול האחרון`;avC='av-urgent'}
+    else if(d>=DAYS-SOON){soon=true;stC='st-soon';stT=`עוד ${DAYS-d} ימים להודעה`;avC='av-soon'}
+    else{stC='st-ok';stT=`עוד ${DAYS-d} ימים`;avC='av-ok'}
+    const hp=c.phone?.trim();
+    const waBtn=urg?(hp?`<a href="${waLink(c)}" target="_blank" class="btn-wa" onclick="toast('ווטסאפ נפתח 📱')">📱</a>`:'<span class="no-phone">אין טלפון</span>'):'';
+    return`<div class="card${urg?' urgent':soon?' soon':''}">
+        <div class="avatar ${avC}">${c.name.slice(0,1)}</div>
+        <div class="card-info" onclick="openEdit('${c.id}')">
+            <div class="card-name">${c.name}</div>
+            ${c.area?`<div class="card-area">📍 ${c.area}</div>`:''}
+            <div class="card-status ${stC}">${stT}</div>
+        </div>
+        <div class="card-actions">
+            ${waBtn}
+            <button class="btn-treated" onclick="markTreated('${c.id}')">✓ טופל</button>
+            <button class="btn-del"     onclick="delCustomer('${c.id}')">×</button>
+        </div>
+    </div>`;
+}
+
+function render(){
+    const q=(document.getElementById('q').value||'').toLowerCase();
+    let f=data.filter(c=>c.name.includes(q)||(c.area||'').includes(q));
+    const urg=[],rest=[];
+    f.forEach(c=>{const d=daysSince(c.lastTreatment);(d!==null&&d>=DAYS?urg:rest).push({...c,_d:d})});
+    urg.sort((a,b)=>b._d-a._d);
+    rest.sort((a,b)=>{if(a._d===null)return 1;if(b._d===null)return-1;return b._d-a._d});
+    const soonN=rest.filter(c=>c._d!==null&&c._d>=DAYS-SOON).length;
+    document.getElementById('st-urg').textContent=urg.length;
+    document.getElementById('st-tot').textContent=data.length;
+    document.getElementById('st-soon').textContent=soonN;
+    let items=curTab==='urgent'?urg:curTab==='ok'?rest:[...urg,...rest];
+    document.getElementById('list').innerHTML=items.length
+        ?items.map(cardHTML).join('')
+        :`<div class="empty"><div class="empty-icon">${curTab==='urgent'?'✅':'👤'}</div>${curTab==='urgent'?'אין לקוחות שצריכים הודעה':'לא נמצאו לקוחות'}</div>`;
+}
+
+// ── Init ──
+document.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&document.getElementById('mo').classList.contains('open'))save();
+    if(e.key==='Escape'){close('mo');close('so')}
+});
+
+// Auto-config from URL hash
+(function(){
+    const h=window.location.hash;
+    if(h.startsWith('#cfg=')){
+        try{
+            const c=JSON.parse(atob(h.slice(5)));
+            if(c.t){localStorage.setItem(LS_CFG,JSON.stringify({token:c.t}));history.replaceState(null,'',location.pathname)}
+        }catch(e){console.error('hash cfg err',e)}
+    }
+})();
+
+(async()=>{
+    if(!localStorage.getItem(LS_DATA)){data=SEED.map(c=>({...c}));saveLocal(data)}
+    await loadData();render();
+})();
+</script>
+</body>
+</html>

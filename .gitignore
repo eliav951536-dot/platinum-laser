@@ -1,0 +1,4 @@
+customers.json
+node_modules/
+.env
+notify.config.js
