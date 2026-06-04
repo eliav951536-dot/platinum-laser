@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PLATINUM LASER — מעקב לקוחות</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#C9A84C">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Platinum Laser">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         :root {
             --gold:#C9A84C; --gold-light:#E5C97E;
@@ -430,6 +436,11 @@ function render(){
 }
 
 // ── Init ──
+// Register service worker for PWA installability
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(console.error);
+}
+
 document.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&document.getElementById('mo').classList.contains('open'))save();
     if(e.key==='Escape'){close('mo');close('so')}
