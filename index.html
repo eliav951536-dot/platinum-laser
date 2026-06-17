@@ -301,7 +301,7 @@ function daysSince(d){
 }
 function phoneClean(p){if(!p)return'';let n=p.replace(/\D/g,'');if(n.length===9)n='0'+n;return n.replace(/^0/,'972')}
 function waLink(c){
-    const m=`היי ${c.name}, מה שלומך?\nראיתי שעבר קצת זמן מהטיפול האחרון שלך בלייזר.${c.area?' ('+c.area+')':''}\n\nכדי לשמור על ההתקדמות ולהגיע לתוצאה טובה, חשוב לא לפתוח פער גדול מדי בין הטיפולים.\nרוצה שאקבע לך תור להמשך הסדרה?`;
+    const m=`היי ${c.name}, מה שלומך?\nראיתי שעבר קצת זמן מהטיפול האחרון שלך בלייזר.${c.area?' ('+c.area+')':''}\n\nכדי לשמור על ההתקדמות ולהגיע לתוצאה טובה, חשוב לא לפתוח פער גדול מדי בין הטיפולים.\n\nלקביעת תור ⬇️\nhttps://calmark.io/p/VTqTx`;
     return`https://wa.me/${phoneClean(c.phone)}?text=${encodeURIComponent(m)}`;
 }
 function setLbl(t){document.getElementById('sync-lbl').textContent=t}

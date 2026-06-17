@@ -50,6 +50,7 @@ async function main() {
     });
 
     msg += `\n📱 ${APP_URL}`;
+    msg += `\n\n_הודעה ללקוחות כוללת קישור לקביעת תור: https://calmark.io/p/VTqTx_`;
 
     const res = await fetch(`${BOT_URL}/group/send`, {
         method: 'POST',
