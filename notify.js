@@ -30,6 +30,7 @@ async function main() {
     const customers = await getCustomers();
 
     const overdue = customers
+        .filter(c => !c.paused)
         .filter(c => { const d = daysSince(c.lastTreatment); return d !== null && d >= DAYS; })
         .sort((a, b) => daysSince(b.lastTreatment) - daysSince(a.lastTreatment));
 
@@ -46,7 +47,8 @@ async function main() {
         const days = daysSince(c.lastTreatment);
         const phone = c.phone ? ` | 0${String(c.phone).replace(/^972/,'')}` : '';
         const area  = c.area  ? ` | ${c.area}` : '';
-        msg += `• *${c.name}* — ${days} ימים${area}${phone}\n`;
+        const tag   = c.callsOnly ? ' 📞' : '';
+        msg += `• *${c.name}*${tag} — ${days} ימים${area}${phone}\n`;
     });
 
     msg += `\n📱 ${APP_URL}`;

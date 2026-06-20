@@ -78,6 +78,12 @@
         .field input[type="tel"],.field input[type="date"]{direction:ltr;text-align:right}
         .field textarea{resize:vertical;min-height:70px;font-size:14px}
         .field small{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+        .chk-field{margin-bottom:10px}
+        .chk-label{display:flex!important;align-items:center;gap:8px;font-size:14px;color:var(--text);cursor:pointer}
+        .chk-label input{width:auto!important;flex-shrink:0;accent-color:var(--gold)}
+        .av-paused{background:var(--surface2);color:var(--muted)}
+        .st-paused{color:var(--muted)}
+        .btn-call{background:#3b82f6;color:#fff;border:none;padding:8px 11px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center}
         .modal-btns{display:flex;gap:10px;margin-top:20px}
         .btn-primary{flex:1;background:var(--gold);color:#000;border:none;padding:15px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
         .btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:15px 20px;border-radius:10px;font-size:15px;cursor:pointer;font-family:inherit}
@@ -137,6 +143,8 @@
         <div class="field"><label>אזור בגוף</label><input type="text" id="f-area" placeholder="צוואר, פנים מלא..."/></div>
         <div class="field"><label>תאריך טיפול אחרון</label><input type="date" id="f-date"/></div>
         <div class="field"><label>הערות</label><textarea id="f-notes"></textarea></div>
+        <div class="field chk-field"><label class="chk-label"><input type="checkbox" id="f-paused"/> הפסיק להגיע — לא לעקוב יותר</label></div>
+        <div class="field chk-field"><label class="chk-label"><input type="checkbox" id="f-calls"/> שיחות בלבד — לא לשלוח הודעות</label></div>
         <input type="hidden" id="f-id"/>
         <div class="modal-btns">
             <button class="btn-primary"   onclick="save()">שמירה</button>
@@ -368,6 +376,8 @@ function openAdd(){
     document.getElementById('f-area').value='';
     document.getElementById('f-date').value=today();
     document.getElementById('f-notes').value='';
+    document.getElementById('f-paused').checked=false;
+    document.getElementById('f-calls').checked=false;
     document.getElementById('mo').classList.add('open');
     setTimeout(()=>document.getElementById('f-name').focus(),200);
 }
@@ -380,6 +390,8 @@ function openEdit(id){
     document.getElementById('f-area').value=c.area||'';
     document.getElementById('f-date').value=c.lastTreatment||'';
     document.getElementById('f-notes').value=c.notes||'';
+    document.getElementById('f-paused').checked=!!c.paused;
+    document.getElementById('f-calls').checked=!!c.callsOnly;
     document.getElementById('mo').classList.add('open');
 }
 async function save(){
@@ -389,9 +401,11 @@ async function save(){
     const area=document.getElementById('f-area').value.trim();
     const date=document.getElementById('f-date').value;
     const notes=document.getElementById('f-notes').value.trim();
+    const paused=document.getElementById('f-paused').checked;
+    const callsOnly=document.getElementById('f-calls').checked;
     if(!name){alert('יש להכניס שם');return}
-    if(id){const c=data.find(x=>x.id===id);if(c)Object.assign(c,{name,phone,area,lastTreatment:date||null,notes})}
-    else data.push({id:Date.now().toString(),name,phone,area,lastTreatment:date||null,notes});
+    if(id){const c=data.find(x=>x.id===id);if(c)Object.assign(c,{name,phone,area,lastTreatment:date||null,notes,paused,callsOnly})}
+    else data.push({id:Date.now().toString(),name,phone,area,lastTreatment:date||null,notes,paused,callsOnly});
     await persist();close('mo');toast(`✅ ${name} נשמר`);render();
 }
 
@@ -430,6 +444,19 @@ function setTab(t){
 
 // ── Render ──
 function cardHTML(c){
+    if(c.paused){
+        return`<div class="card">
+            <div class="avatar av-paused">${c.name.slice(0,1)}</div>
+            <div class="card-info" onclick="openEdit('${c.id}')">
+                <div class="card-name">${c.name}</div>
+                ${c.area?`<div class="card-area">📍 ${c.area}</div>`:''}
+                <div class="card-status st-paused">⏸ מעקב מופסק</div>
+            </div>
+            <div class="card-actions">
+                <button class="btn-del" onclick="delCustomer('${c.id}')">×</button>
+            </div>
+        </div>`;
+    }
     const d=daysSince(c.lastTreatment);
     let urg=false,soon=false,stC,stT,avC;
     if(d===null){stC='st-none';stT='טרם נרשם טיפול';avC='av-none'}
@@ -437,16 +464,21 @@ function cardHTML(c){
     else if(d>=DAYS-SOON){soon=true;stC='st-soon';stT=`עוד ${DAYS-d} ימים להודעה`;avC='av-soon'}
     else{stC='st-ok';stT=`עוד ${DAYS-d} ימים`;avC='av-ok'}
     const hp=c.phone?.trim();
-    const waBtn=urg?(hp?`<a href="${waLink(c)}" target="_blank" class="btn-wa" onclick="toast('ווטסאפ נפתח 📱')">📱</a>`:'<span class="no-phone">אין טלפון</span>'):'';
+    let actionBtn='';
+    if(urg){
+        if(!hp) actionBtn='<span class="no-phone">אין טלפון</span>';
+        else if(c.callsOnly) actionBtn=`<a href="tel:${hp}" class="btn-call" onclick="toast('מתקשר 📞')">📞</a>`;
+        else actionBtn=`<a href="${waLink(c)}" target="_blank" class="btn-wa" onclick="toast('ווטסאפ נפתח 📱')">📱</a>`;
+    }
     return`<div class="card${urg?' urgent':soon?' soon':''}">
         <div class="avatar ${avC}">${c.name.slice(0,1)}</div>
         <div class="card-info" onclick="openEdit('${c.id}')">
-            <div class="card-name">${c.name}</div>
+            <div class="card-name">${c.name}${c.callsOnly?' 📞':''}</div>
             ${c.area?`<div class="card-area">📍 ${c.area}</div>`:''}
             <div class="card-status ${stC}">${stT}</div>
         </div>
         <div class="card-actions">
-            ${waBtn}
+            ${actionBtn}
             <button class="btn-treated" onclick="markTreated('${c.id}')">✓ טופל</button>
             <button class="btn-del"     onclick="delCustomer('${c.id}')">×</button>
         </div>
@@ -456,15 +488,16 @@ function cardHTML(c){
 function render(){
     const q=(document.getElementById('q').value||'').toLowerCase();
     let f=data.filter(c=>c.name.includes(q)||(c.area||'').includes(q));
+    const active=f.filter(c=>!c.paused), paused=f.filter(c=>c.paused);
     const urg=[],rest=[];
-    f.forEach(c=>{const d=daysSince(c.lastTreatment);(d!==null&&d>=DAYS?urg:rest).push({...c,_d:d})});
+    active.forEach(c=>{const d=daysSince(c.lastTreatment);(d!==null&&d>=DAYS?urg:rest).push({...c,_d:d})});
     urg.sort((a,b)=>b._d-a._d);
     rest.sort((a,b)=>{if(a._d===null)return 1;if(b._d===null)return-1;return b._d-a._d});
     const soonN=rest.filter(c=>c._d!==null&&c._d>=DAYS-SOON).length;
     document.getElementById('st-urg').textContent=urg.length;
     document.getElementById('st-tot').textContent=data.length;
     document.getElementById('st-soon').textContent=soonN;
-    let items=curTab==='urgent'?urg:curTab==='ok'?rest:[...urg,...rest];
+    let items=curTab==='urgent'?urg:curTab==='ok'?[...rest,...paused]:[...urg,...rest,...paused];
     document.getElementById('list').innerHTML=items.length
         ?items.map(cardHTML).join('')
         :`<div class="empty"><div class="empty-icon">${curTab==='urgent'?'✅':'👤'}</div>${curTab==='urgent'?'אין לקוחות שצריכים הודעה':'לא נמצאו לקוחות'}</div>`;
