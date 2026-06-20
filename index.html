@@ -202,10 +202,46 @@ let data=[];
 function saveLocal(d){ localStorage.setItem(LS_DATA,JSON.stringify(d)) }
 function loadLocal(){ try{return JSON.parse(localStorage.getItem(LS_DATA)||'[]')}catch{return[]} }
 
+// Merge two customer arrays by id — for each id, keep whichever record
+// has the more recent lastTreatment date (newer wins). Records that exist
+// in only one side are kept as-is.
+function mergeCustomers(local, remote){
+    const byId = new Map();
+    (remote||[]).forEach(c => byId.set(c.id, c));
+    (local||[]).forEach(c => {
+        const r = byId.get(c.id);
+        if (!r) { byId.set(c.id, c); return; }
+        const dl = daysSinceRaw(c.lastTreatment), dr = daysSinceRaw(r.lastTreatment);
+        // lower "days since epoch-diff" means more recent; null = never treated (oldest)
+        const localNewer = dl !== null && (dr === null || dl < dr);
+        byId.set(c.id, localNewer ? c : r);
+    });
+    return Array.from(byId.values());
+}
+function daysSinceRaw(d){ return d ? new Date(d).getTime() : null; }
+
+let firstConnectDone = false;
 async function loadData(){
     if(ok()){
-        const rows=await ghRead();
-        if(rows){data=rows;saveLocal(data);setLbl('מסונכרן עם GitHub ☁️');document.getElementById('banner').style.display='none';return}
+        const remote = await ghRead();
+        if(remote){
+            const local = loadLocal();
+            if(!firstConnectDone && local.length){
+                // First connect on this device: merge local + remote so nothing made
+                // before connecting gets silently overwritten by stale cloud data.
+                const merged = mergeCustomers(local, remote);
+                data = merged;
+                saveLocal(data);
+                await ghWrite(data);
+                firstConnectDone = true;
+            } else {
+                data = remote;
+                saveLocal(data);
+            }
+            setLbl('מסונכרן עם GitHub ☁️');
+            document.getElementById('banner').style.display='none';
+            return;
+        }
     }
     data=loadLocal();
     setLbl('מקומי (ללא סנכרון)');
@@ -374,9 +410,8 @@ async function saveSets(){
     const token=document.getElementById('s-token').value.trim();
     if(!token){alert('יש להכניס GitHub Token');return}
     localStorage.setItem(LS_CFG,JSON.stringify({token}));
-    close('so');toast('מחבר ל-GitHub...');
-    const existing=await ghRead();
-    if(!existing||!existing.length){await ghWrite(data);toast(`☁️ ${data.length} לקוחות הועלו`)}
+    close('so');toast('מחבר ומשלב נתונים מקומיים עם GitHub...');
+    firstConnectDone=false;
     await loadData();render();
 }
 function clearSets(){
