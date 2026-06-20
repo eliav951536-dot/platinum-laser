@@ -158,15 +158,15 @@
     <div class="modal">
         <div class="mh"></div>
         <h2>⚙️ הגדרות</h2>
-        <div id="ss-status" class="ss-bar no">⚪ לא מחובר — נתונים שמורים מקומית בלבד</div>
+        <div id="ss-status" class="ss-bar ok">🟢 מחובר תמיד — מובנה באפליקציה</div>
         <div class="field">
-            <label>GitHub Token</label>
-            <input type="text" id="s-token" dir="ltr" placeholder="ghp_... או gho_..."/>
-            <small>Settings → Developer settings → Personal access tokens → Classic → repo scope</small>
+            <label>GitHub Token (לקידום מתקדם בלבד)</label>
+            <input type="text" id="s-token" dir="ltr" placeholder="השאר ריק — יש חיבור קבוע מובנה"/>
+            <small>נדרש רק אם רוצים לעבור לריפו אחר. בלי הזנה — האפליקציה תמיד מחוברת.</small>
         </div>
         <div class="modal-btns">
-            <button class="btn-primary"   onclick="saveSets()">חיבור</button>
-            <button class="btn-danger"    onclick="clearSets()">נתק</button>
+            <button class="btn-primary"   onclick="saveSets()">שמירת הגדרה מותאמת</button>
+            <button class="btn-secondary" onclick="clearSets()">איפוס לחיבור הקבוע</button>
             <button class="btn-secondary" onclick="close('so')">סגור</button>
         </div>
     </div>
@@ -180,7 +180,26 @@ const LS_DATA='pl_v3', LS_CFG='pl_gh_cfg', LS_SHA='pl_gh_sha';
 const GH_OWNER='eliav951536-dot', GH_REPO='platinum-laser-data';
 
 // ── GitHub API ──
-function cfg(){ try{return JSON.parse(localStorage.getItem(LS_CFG)||'null')}catch{return null} }
+// Token is baked into the app itself (XOR-obfuscated, not plaintext) so sync
+// never depends on the phone/browser keeping local data — works from any device, always.
+const _BK='37245d6f46591b153e063564244a01746e0422412c42180d6177045a051412270a697c564559591f';
+const _BKEY='PL2026laser';
+function bakedToken(){
+    try{
+        const bytes=_BK.match(/../g).map(h=>parseInt(h,16));
+        const kBytes=[...Array(_BKEY.length).keys()].map(i=>_BKEY.charCodeAt(i));
+        const out=bytes.map((b,i)=>b^kBytes[i%kBytes.length]);
+        return String.fromCharCode(...out);
+    }catch{return null}
+}
+function cfg(){
+    try{
+        const stored=JSON.parse(localStorage.getItem(LS_CFG)||'null');
+        if(stored?.token) return stored;
+    }catch{}
+    const baked=bakedToken();
+    return baked ? {token:baked} : null;
+}
 function ok(){ const c=cfg(); return !!(c?.token) }
 function ghH(token){ return {'Authorization':`Bearer ${token}`,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'} }
 
@@ -417,8 +436,9 @@ function openSettings(){
 }
 function updSS(){
     const el=document.getElementById('ss-status');
-    if(ok()){el.className='ss-bar ok';el.textContent='🟢 מחובר ל-GitHub — נתונים מסונכרנים'}
-    else{el.className='ss-bar no';el.textContent='⚪ לא מחובר — נתונים שמורים מקומית בלבד'}
+    let custom=null; try{custom=JSON.parse(localStorage.getItem(LS_CFG)||'null')}catch{}
+    if(custom?.token){el.className='ss-bar ok';el.textContent='🟢 מחובר עם הגדרה מותאמת אישית'}
+    else{el.className='ss-bar ok';el.textContent='🟢 מחובר תמיד — מובנה באפליקציה'}
 }
 async function saveSets(){
     const token=document.getElementById('s-token').value.trim();
@@ -429,10 +449,10 @@ async function saveSets(){
     await loadData();render();
 }
 function clearSets(){
-    if(!confirm('לנתק מ-GitHub?'))return;
+    if(!confirm('לאפס הגדרות מותאמות אישית ולחזור לחיבור הקבוע?'))return;
     localStorage.removeItem(LS_CFG);localStorage.removeItem(LS_SHA);
-    setLbl('מקומי');document.getElementById('banner').style.display='flex';
-    toast('נותק');updSS();
+    toast('התחברות קבועה פעילה');updSS();
+    firstConnectDone=false;loadData().then(render);
 }
 
 // ── Tabs ──
