@@ -524,9 +524,19 @@ function render(){
 }
 
 // ── Init ──
-// Register service worker for PWA installability
+// Register service worker for PWA installability.
+// Force an immediate update check and auto-reload once a newer SW takes
+// control, so a stale cached version never gets stuck on a device.
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(console.error);
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.update().catch(()=>{});
+        let reloaded = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (reloaded) return;
+            reloaded = true;
+            window.location.reload();
+        });
+    }).catch(console.error);
 }
 
 document.addEventListener('keydown',e=>{
