@@ -108,6 +108,8 @@
         .quote-text{white-space:pre-wrap;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;line-height:1.6}
         .pl-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px}
         .pl-row .field{flex:1;margin-bottom:0}
+        .btn-ico{position:relative}
+        .badge{position:absolute;top:-5px;left:-5px;background:var(--red);color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;line-height:1}
     </style>
 </head>
 <body>
@@ -117,6 +119,7 @@
         <div class="logo-sub" id="sync-lbl">מעקב לקוחות</div>
     </div>
     <div class="hdr">
+        <button class="btn-ico" onclick="openDailyReminders()" title="תזכורות היום">🔔<span id="dr-badge" class="badge">0</span></button>
         <button class="btn-ico" onclick="openSettings()" title="הגדרות">⚙️</button>
         <button class="btn-add" onclick="openAdd()">+ לקוח חדש</button>
     </div>
@@ -223,6 +226,16 @@
             <button class="btn-primary" style="flex:1" onclick="saveReminderTpl()">שמירת תבנית</button>
             <button class="btn-secondary" style="flex:1" onclick="openPriceList()">💰 עריכת מחירון</button>
         </div>
+    </div>
+</div>
+
+<!-- Daily Reminders -->
+<div class="overlay" id="dro" onclick="ooc(event,'dro')">
+    <div class="modal">
+        <div class="mh"></div>
+        <h2>🔔 תזכורות היום</h2>
+        <div id="dr-body"></div>
+        <div class="modal-btns"><button class="btn-secondary" style="flex:1" onclick="closeModal('dro')">סגירה</button></div>
     </div>
 </div>
 
@@ -648,6 +661,7 @@ function render(){
         ?items.map(cardHTML).join('')
         :`<div class="empty"><div class="empty-icon">${curTab==='urgent'?'✅':'👤'}</div>${curTab==='urgent'?'אין לקוחות שצריכים הודעה':'לא נמצאו לקוחות'}</div>`;
     refreshCustomerDatalist();
+    refreshReminders();
 }
 function refreshCustomerDatalist(){
     const dl=document.getElementById('q-names');
@@ -770,7 +784,7 @@ function apptGroupLabel(dateStr){
 function renderAppts(){
     const el=document.getElementById('appt-list');
     const sorted=[...appointments].sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
-    if(!sorted.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">📅</div>אין תורים עתידיים</div>`; return; }
+    if(!sorted.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">📅</div>אין תורים עתידיים</div>`; refreshReminders(); return; }
     let lastLabel=null,html='';
     sorted.forEach(ap=>{
         const label=apptGroupLabel(ap.date);
@@ -778,6 +792,7 @@ function renderAppts(){
         html+=apptCardHTML(ap);
     });
     el.innerHTML=html;
+    refreshReminders();
 }
 function apptCardHTML(ap){
     const hp=ap.phone?.trim();
@@ -859,6 +874,42 @@ async function completeAppt(id){
     await persist();
     toast(`✅ ${ap.name} — טיפול נרשם`);
     renderAppts(); render();
+}
+
+// ── Daily Reminders (send straight from the app — no local WhatsApp bot needed) ──
+function tomorrowDate(){
+    const d=new Date(); d.setDate(d.getDate()+1);
+    return d.toISOString().split('T')[0];
+}
+function getDailyReminders(){
+    const overdue=data.filter(c=>!c.paused).filter(c=>{const d=daysSince(c.lastTreatment);return d!==null&&d>=DAYS}).sort((a,b)=>daysSince(b.lastTreatment)-daysSince(a.lastTreatment));
+    const tmrw=tomorrowDate();
+    const apptTomorrow=appointments.filter(a=>a.date===tmrw).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    return {overdue, apptTomorrow};
+}
+function renderDailyReminders(){
+    const {overdue, apptTomorrow}=getDailyReminders();
+    let html='';
+    if(overdue.length){
+        html+=`<div class="appt-group-label">לקוחות שצריכים הודעה (${overdue.length})</div>`;
+        html+=overdue.map(cardHTML).join('');
+    }
+    if(apptTomorrow.length){
+        html+=`<div class="appt-group-label">תורים למחר (${apptTomorrow.length})</div>`;
+        html+=apptTomorrow.map(apptCardHTML).join('');
+    }
+    document.getElementById('dr-body').innerHTML = html || `<div class="empty"><div class="empty-icon">✅</div>אין תזכורות לשליחה היום</div>`;
+}
+function refreshReminders(){
+    const {overdue, apptTomorrow}=getDailyReminders();
+    const n=overdue.length+apptTomorrow.length;
+    const b=document.getElementById('dr-badge');
+    if(n>0){ b.textContent=n>99?'99+':n; b.style.display='flex'; } else b.style.display='none';
+    if(document.getElementById('dro').classList.contains('open')) renderDailyReminders();
+}
+function openDailyReminders(){
+    renderDailyReminders();
+    document.getElementById('dro').classList.add('open');
 }
 
 // ── Init ──
