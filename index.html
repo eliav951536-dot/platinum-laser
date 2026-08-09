@@ -25,7 +25,7 @@
         .hdr{display:flex;gap:8px}
         .btn-add{background:var(--gold);color:#000;border:none;padding:10px 16px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
         .btn-ico{background:var(--surface2);color:var(--muted);border:1px solid var(--border);padding:10px 12px;border-radius:8px;font-size:16px;cursor:pointer}
-        main{max-width:620px;margin:0 auto;padding:20px 14px 120px}
+        main{max-width:620px;margin:0 auto;padding:20px 14px 140px}
         .banner{background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
         .banner-text{font-size:13px;color:var(--gold-light);flex:1}
         .btn-banner{background:var(--gold);color:#000;border:none;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
@@ -93,6 +93,21 @@
         .ss-bar.no{background:rgba(136,136,136,.1);border:1px solid var(--border);color:var(--muted)}
         .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 22px;border-radius:50px;font-size:14px;font-weight:600;transition:transform .3s ease;z-index:300;white-space:nowrap}
         .toast.show{transform:translateX(-50%) translateY(0)}
+        .bottomnav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:150;padding-bottom:env(safe-area-inset-bottom)}
+        .bn-item{flex:1;text-align:center;padding:9px 4px 8px;font-size:11px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;user-select:none}
+        .bn-item .bn-ic{font-size:19px}
+        .bn-item.active{color:var(--gold)}
+        .chips{display:flex;flex-wrap:wrap;gap:8px}
+        .chip{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:20px;font-size:13px;cursor:pointer;user-select:none}
+        .chip.sel{background:var(--gold);border-color:var(--gold);color:#000;font-weight:700}
+        .quote-summary{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px}
+        .qs-row{display:flex;justify-content:space-between;font-size:14px;padding:6px 0}
+        .qs-row.qs-pkg{border-top:1px solid var(--border);margin-top:4px;padding-top:10px;color:var(--gold);font-weight:700}
+        .appt-group-label{font-size:12px;font-weight:700;color:var(--gold);margin:16px 0 8px;letter-spacing:.5px}
+        .appt-group-label:first-child{margin-top:0}
+        .quote-text{white-space:pre-wrap;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:14px;line-height:1.6}
+        .pl-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px}
+        .pl-row .field{flex:1;margin-bottom:0}
     </style>
 </head>
 <body>
@@ -113,25 +128,56 @@
         <button class="btn-banner" onclick="openSettings()">הגדרות</button>
     </div>
 
-    <div class="stats">
-        <div class="stat-card s-red"><div class="stat-num" id="st-urg">—</div><div class="stat-label">צריכים הודעה</div></div>
-        <div class="stat-card s-gold"><div class="stat-num" id="st-tot">—</div><div class="stat-label">סה"כ לקוחות</div></div>
-        <div class="stat-card s-yellow"><div class="stat-num" id="st-soon">—</div><div class="stat-label">השבוע הקרוב</div></div>
+    <div id="screen-customers" class="screen">
+        <div class="stats">
+            <div class="stat-card s-red"><div class="stat-num" id="st-urg">—</div><div class="stat-label">צריכים הודעה</div></div>
+            <div class="stat-card s-gold"><div class="stat-num" id="st-tot">—</div><div class="stat-label">סה"כ לקוחות</div></div>
+            <div class="stat-card s-yellow"><div class="stat-num" id="st-soon">—</div><div class="stat-label">השבוע הקרוב</div></div>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="q" placeholder="חיפוש לפי שם..." oninput="render()"/>
+            <span class="si">🔍</span>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" id="tab-all"    onclick="setTab('all')">הכול</div>
+            <div class="tab"        id="tab-urgent" onclick="setTab('urgent')">צריכים הודעה</div>
+            <div class="tab"        id="tab-ok"     onclick="setTab('ok')">בסדר</div>
+        </div>
+
+        <div id="list"><div class="loading"><div class="spinner"></div>טוען...</div></div>
     </div>
 
-    <div class="search-bar">
-        <input type="text" id="q" placeholder="חיפוש לפי שם..." oninput="render()"/>
-        <span class="si">🔍</span>
+    <div id="screen-quote" class="screen" style="display:none">
+        <div class="field"><label>שם הלקוח</label>
+            <input type="text" id="q-name" list="q-names" placeholder="הקלד או בחר לקוח קיים..." oninput="onQuoteNameInput()"/>
+            <datalist id="q-names"></datalist>
+        </div>
+        <div class="field"><label>מספר טלפון (לשליחה בוואטסאפ)</label><input type="tel" id="q-phone"/></div>
+        <div class="field">
+            <label>אזורי טיפול <a href="#" onclick="openPriceList();return false" style="color:var(--gold);font-size:12px;margin-right:6px">✏️ עריכת מחירון</a></label>
+            <div class="chips" id="q-areas"></div>
+        </div>
+        <div class="quote-summary">
+            <div class="qs-row"><span>טיפול בודד</span><span id="qs-single">0 ₪</span></div>
+            <div class="qs-row qs-pkg"><span>מחיר לסדרה (הנחה <span id="qs-pct">0</span>%)</span><span id="qs-pkg">0 ₪</span></div>
+        </div>
+        <button class="btn-primary" style="width:100%;margin-top:14px" onclick="buildQuote()">📝 הכנת הצעת מחיר</button>
     </div>
 
-    <div class="tabs">
-        <div class="tab active" id="tab-all"    onclick="setTab('all')">הכול</div>
-        <div class="tab"        id="tab-urgent" onclick="setTab('urgent')">צריכים הודעה</div>
-        <div class="tab"        id="tab-ok"     onclick="setTab('ok')">בסדר</div>
+    <div id="screen-calendar" class="screen" style="display:none">
+        <button class="btn-add" style="width:100%;margin-bottom:16px" onclick="openApptAdd()">+ תור חדש</button>
+        <div id="appt-list"></div>
     </div>
-
-    <div id="list"><div class="loading"><div class="spinner"></div>טוען...</div></div>
 </main>
+
+<nav class="bottomnav">
+    <div class="bn-item active" id="bn-customers" onclick="setScreen('customers')"><span class="bn-ic">👥</span><span>לקוחות</span></div>
+    <div class="bn-item" id="bn-quote" onclick="setScreen('quote')"><span class="bn-ic">💰</span><span>הצעת מחיר</span></div>
+    <div class="bn-item" id="bn-calendar" onclick="setScreen('calendar')"><span class="bn-ic">📅</span><span>יומן</span></div>
+    <div class="bn-item" onclick="openSettings()"><span class="bn-ic">⚙️</span><span>הגדרות</span></div>
+</nav>
 
 <!-- Add/Edit -->
 <div class="overlay" id="mo" onclick="ooc(event,'mo')">
@@ -148,7 +194,7 @@
         <input type="hidden" id="f-id"/>
         <div class="modal-btns">
             <button class="btn-primary"   onclick="save()">שמירה</button>
-            <button class="btn-secondary" onclick="close('mo')">ביטול</button>
+            <button class="btn-secondary" onclick="closeModal('mo')">ביטול</button>
         </div>
     </div>
 </div>
@@ -167,8 +213,66 @@
         <div class="modal-btns">
             <button class="btn-primary"   onclick="saveSets()">שמירת הגדרה מותאמת</button>
             <button class="btn-secondary" onclick="clearSets()">איפוס לחיבור הקבוע</button>
-            <button class="btn-secondary" onclick="close('so')">סגור</button>
+            <button class="btn-secondary" onclick="closeModal('so')">סגור</button>
         </div>
+        <div class="field" style="margin-top:22px;border-top:1px solid var(--border);padding-top:18px">
+            <label>תבנית הודעת תזכורת לפני טיפול (משתנים: {שם} {תאריך} {שעה} {אזור})</label>
+            <textarea id="s-reminder-tpl" style="min-height:110px"></textarea>
+        </div>
+        <div class="modal-btns">
+            <button class="btn-primary" style="flex:1" onclick="saveReminderTpl()">שמירת תבנית</button>
+            <button class="btn-secondary" style="flex:1" onclick="openPriceList()">💰 עריכת מחירון</button>
+        </div>
+    </div>
+</div>
+
+<!-- Appointment Add/Edit -->
+<div class="overlay" id="ao" onclick="ooc(event,'ao')">
+    <div class="modal">
+        <div class="mh"></div>
+        <h2 id="ao-title">תור חדש</h2>
+        <div class="field"><label>שם לקוח</label><input type="text" id="a-name" list="q-names" oninput="onApptNameInput()" autocomplete="off"/></div>
+        <div class="field"><label>מספר טלפון</label><input type="tel" id="a-phone"/></div>
+        <div class="field"><label>אזור טיפול</label><input type="text" id="a-area"/></div>
+        <div class="field"><label>תאריך</label><input type="date" id="a-date"/></div>
+        <div class="field"><label>שעה</label><input type="time" id="a-time"/></div>
+        <div class="field"><label>הערות</label><textarea id="a-notes"></textarea></div>
+        <input type="hidden" id="a-id"/>
+        <div class="modal-btns">
+            <button class="btn-primary"   onclick="saveAppt()">שמירה</button>
+            <button class="btn-secondary" onclick="closeModal('ao')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Price List -->
+<div class="overlay" id="plo" onclick="ooc(event,'plo')">
+    <div class="modal">
+        <div class="mh"></div>
+        <h2>💰 עריכת מחירון</h2>
+        <div id="pl-list"></div>
+        <div class="modal-btns">
+            <button class="btn-secondary" style="flex:1" onclick="addPriceRow()">+ אזור חדש</button>
+        </div>
+        <div class="field" style="margin-top:18px"><label>אחוז הנחת חבילה / סדרה</label><input type="number" id="pl-discount" min="0" max="100"/></div>
+        <div class="modal-btns">
+            <button class="btn-primary"   onclick="savePriceList()">שמירה</button>
+            <button class="btn-secondary" onclick="closeModal('plo')">ביטול</button>
+        </div>
+    </div>
+</div>
+
+<!-- Quote Preview -->
+<div class="overlay" id="qpo" onclick="ooc(event,'qpo')">
+    <div class="modal">
+        <div class="mh"></div>
+        <h2>📝 הצעת מחיר מוכנה</h2>
+        <div class="quote-text" id="quote-preview-text"></div>
+        <div class="modal-btns">
+            <a id="quote-preview-send" class="btn-wa" style="flex:1;justify-content:center" target="_blank" onclick="toast('ווטסאפ נפתח 📱')">📱 שליחה בוואטסאפ</a>
+            <button class="btn-secondary" onclick="copyQuote()">📋 העתק</button>
+        </div>
+        <div class="modal-btns"><button class="btn-secondary" style="flex:1" onclick="closeModal('qpo')">סגירה</button></div>
     </div>
 </div>
 
@@ -178,6 +282,7 @@
 const DAYS=40, SOON=7;
 const LS_DATA='pl_v3', LS_CFG='pl_gh_cfg', LS_SHA='pl_gh_sha';
 const GH_OWNER='eliav951536-dot', GH_REPO='platinum-laser-data';
+const AREAS=['בין הגבות','גבות מלא','עצמות לחיים','צוואר','עורף','כתפיים','גב מלא','חצי יד','ידיים מלא','חזה','בטן','חצי רגל','רגליים מלאות'];
 
 // ── GitHub API ──
 // Token is baked into the app itself (XOR-obfuscated, not plaintext) so sync
@@ -212,10 +317,10 @@ async function ghRead(){
     return JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));
 }
 
-async function ghWrite(arr){
+async function ghWrite(){
     const c=cfg(); if(!c) return;
     const sha=localStorage.getItem(LS_SHA);
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(arr,null,2))));
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(packState(),null,2))));
     const body=JSON.stringify({message:'update',content,...(sha?{sha}:{})});
     const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/customers.json`,
         {method:'PUT',headers:{...ghH(c.token),'Content-Type':'application/json'},body});
@@ -225,9 +330,29 @@ async function ghWrite(arr){
 }
 
 // ── Data ──
-let data=[];
-function saveLocal(d){ localStorage.setItem(LS_DATA,JSON.stringify(d)) }
-function loadLocal(){ try{return JSON.parse(localStorage.getItem(LS_DATA)||'[]')}catch{return[]} }
+let data=[];           // customers
+let appointments=[];   // future appointments
+let priceList={};      // area -> price (₪)
+let settings={};       // { packageDiscountPct, reminderTemplate }
+
+function defaultPriceList(){ const pl={}; AREAS.forEach(a=>pl[a]=0); return pl; }
+function defaultSettings(){
+    return {
+        packageDiscountPct: 15,
+        reminderTemplate: 'היי {שם}, מה שלומך? 🙏\nמזכיר לך שיש לנו תור מחר, {תאריך} בשעה {שעה}, לטיפול ב{אזור}.\nמחכה לך! 💈'
+    };
+}
+function packState(){ return {customers:data, appointments, priceList, settings}; }
+function unpackState(raw){
+    if(!raw){ data=[]; appointments=[]; priceList=defaultPriceList(); settings=defaultSettings(); return; }
+    if(Array.isArray(raw)){ data=raw; appointments=[]; priceList=defaultPriceList(); settings=defaultSettings(); return; }
+    data=raw.customers||[];
+    appointments=raw.appointments||[];
+    priceList={...defaultPriceList(),...(raw.priceList||{})};
+    settings={...defaultSettings(),...(raw.settings||{})};
+}
+function saveLocal(){ localStorage.setItem(LS_DATA,JSON.stringify(packState())) }
+function loadLocalRaw(){ try{return JSON.parse(localStorage.getItem(LS_DATA)||'null')}catch{return null} }
 
 // Merge two customer arrays by id — for each id, keep whichever record
 // has the more recent lastTreatment date (newer wins). Records that exist
@@ -252,32 +377,32 @@ async function loadData(){
     if(ok()){
         const remote = await ghRead();
         if(remote){
-            const local = loadLocal();
-            if(!firstConnectDone && local.length){
+            const localRaw = loadLocalRaw();
+            const localCustomers = Array.isArray(localRaw) ? localRaw : (localRaw?.customers||[]);
+            unpackState(remote);
+            if(!firstConnectDone && localCustomers.length){
                 // First connect on this device: merge local + remote so nothing made
                 // before connecting gets silently overwritten by stale cloud data.
-                const merged = mergeCustomers(local, remote);
-                data = merged;
-                saveLocal(data);
-                await ghWrite(data);
-                firstConnectDone = true;
+                data = mergeCustomers(localCustomers, data);
+                saveLocal();
+                await ghWrite();
             } else {
-                data = remote;
-                saveLocal(data);
+                saveLocal();
             }
+            firstConnectDone = true;
             setLbl('מסונכרן עם GitHub ☁️');
             document.getElementById('banner').style.display='none';
             return;
         }
     }
-    data=loadLocal();
+    unpackState(loadLocalRaw());
     setLbl('מקומי (ללא סנכרון)');
     if(!ok()) document.getElementById('banner').style.display='flex';
 }
 
 async function persist(){
-    saveLocal(data);
-    if(ok()) ghWrite(data).catch(console.error); // async, don't block UI
+    saveLocal();
+    if(ok()) ghWrite().catch(console.error); // async, don't block UI
 }
 
 // ── Seed ──
@@ -384,8 +509,8 @@ async function delCustomer(id){
 
 // ── Modals ──
 let curTab='all';
-function ooc(e,id){if(e.target.id===id)close(id)}
-function close(id){document.getElementById(id).classList.remove('open')}
+function ooc(e,id){if(e.target.id===id)closeModal(id)}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
 
 function openAdd(){
     document.getElementById('mo-title').textContent='לקוח חדש';
@@ -425,12 +550,13 @@ async function save(){
     if(!name){alert('יש להכניס שם');return}
     if(id){const c=data.find(x=>x.id===id);if(c)Object.assign(c,{name,phone,area,lastTreatment:date||null,notes,paused,callsOnly})}
     else data.push({id:Date.now().toString(),name,phone,area,lastTreatment:date||null,notes,paused,callsOnly});
-    await persist();close('mo');toast(`✅ ${name} נשמר`);render();
+    await persist();closeModal('mo');toast(`✅ ${name} נשמר`);render();
 }
 
 // ── Settings ──
 function openSettings(){
     document.getElementById('s-token').value=cfg()?.token||'';
+    document.getElementById('s-reminder-tpl').value=settings.reminderTemplate||'';
     updSS();
     document.getElementById('so').classList.add('open');
 }
@@ -444,7 +570,7 @@ async function saveSets(){
     const token=document.getElementById('s-token').value.trim();
     if(!token){alert('יש להכניס GitHub Token');return}
     localStorage.setItem(LS_CFG,JSON.stringify({token}));
-    close('so');toast('מחבר ומשלב נתונים מקומיים עם GitHub...');
+    closeModal('so');toast('מחבר ומשלב נתונים מקומיים עם GitHub...');
     firstConnectDone=false;
     await loadData();render();
 }
@@ -521,6 +647,218 @@ function render(){
     document.getElementById('list').innerHTML=items.length
         ?items.map(cardHTML).join('')
         :`<div class="empty"><div class="empty-icon">${curTab==='urgent'?'✅':'👤'}</div>${curTab==='urgent'?'אין לקוחות שצריכים הודעה':'לא נמצאו לקוחות'}</div>`;
+    refreshCustomerDatalist();
+}
+function refreshCustomerDatalist(){
+    const dl=document.getElementById('q-names');
+    if(dl) dl.innerHTML=data.map(c=>`<option value="${c.name}">`).join('');
+}
+
+// ── Screens ──
+let curScreen='customers';
+function setScreen(s){
+    curScreen=s;
+    ['customers','quote','calendar'].forEach(x=>{
+        document.getElementById('screen-'+x).style.display=x===s?'':'none';
+        const bn=document.getElementById('bn-'+x);
+        if(bn) bn.classList.toggle('active',x===s);
+    });
+    if(s==='quote'){ renderAreaChips(); updateQuoteSummary(); }
+    if(s==='calendar'){ renderAppts(); }
+}
+
+// ── Price Quote ──
+let selectedAreas=new Set();
+function onQuoteNameInput(){
+    const name=document.getElementById('q-name').value.trim();
+    const c=data.find(x=>x.name===name);
+    if(c && c.phone) document.getElementById('q-phone').value=c.phone;
+}
+function renderAreaChips(){
+    const el=document.getElementById('q-areas');
+    const areas=Object.keys(priceList);
+    el.innerHTML=areas.map(a=>`<div class="chip${selectedAreas.has(a)?' sel':''}" onclick="toggleArea('${a.replace(/'/g,"\\'")}')">${a} · ${priceList[a]||0}₪</div>`).join('')
+        +`<div class="chip" onclick="addCustomArea()">+ אזור אחר</div>`;
+}
+function toggleArea(a){
+    if(selectedAreas.has(a)) selectedAreas.delete(a); else selectedAreas.add(a);
+    renderAreaChips(); updateQuoteSummary();
+}
+async function addCustomArea(){
+    const name=prompt('שם האזור:'); if(!name) return;
+    const price=prompt('מחיר (₪):','0'); if(price===null) return;
+    priceList[name.trim()]=Number(price)||0;
+    await persist();
+    renderAreaChips();
+}
+function updateQuoteSummary(){
+    let total=0;
+    selectedAreas.forEach(a=>total+=Number(priceList[a]||0));
+    const pct=Number(settings.packageDiscountPct||0);
+    const pkg=Math.round(total*(1-pct/100));
+    document.getElementById('qs-single').textContent=total+' ₪';
+    document.getElementById('qs-pkg').textContent=pkg+' ₪';
+    document.getElementById('qs-pct').textContent=pct;
+}
+function buildQuote(){
+    if(selectedAreas.size===0){alert('בחר לפחות אזור טיפול אחד');return}
+    const name=document.getElementById('q-name').value.trim()||'לקוח יקר';
+    const phone=document.getElementById('q-phone').value.trim();
+    let total=0,lines='';
+    [...selectedAreas].forEach(a=>{const p=Number(priceList[a]||0);total+=p;lines+=`• ${a} — ${p} ₪\n`});
+    const pct=Number(settings.packageDiscountPct||0);
+    const pkg=Math.round(total*(1-pct/100));
+    const msg=`היי ${name}, מה שלומך? 🙏\n\nהנה הצעת מחיר עבורך:\n\n${lines}\nטיפול בודד: ${total} ₪\nמחיר לסדרה מלאה (הנחה ${pct}%): ${pkg} ₪\n\nחשוב לדעת שבלייזר התוצאה האמיתית מגיעה מסדרה מסודרת, ולכן בדרך כלל משתלם יותר לסגור חבילה.\n\nרוצה שאקבע לך תור? 💈`;
+    document.getElementById('quote-preview-text').textContent=msg;
+    const sendBtn=document.getElementById('quote-preview-send');
+    if(phone){ sendBtn.href=`https://wa.me/${phoneClean(phone)}?text=${encodeURIComponent(msg)}`; sendBtn.style.display='inline-flex'; }
+    else sendBtn.style.display='none';
+    document.getElementById('qpo').classList.add('open');
+}
+async function copyQuote(){
+    const t=document.getElementById('quote-preview-text').textContent;
+    try{ await navigator.clipboard.writeText(t); toast('📋 הועתק'); }catch{ toast('שגיאה בהעתקה'); }
+}
+
+// ── Price List editing ──
+function openPriceList(){
+    renderPriceRows();
+    document.getElementById('pl-discount').value=settings.packageDiscountPct;
+    document.getElementById('plo').classList.add('open');
+}
+function renderPriceRows(){
+    const el=document.getElementById('pl-list');
+    el.innerHTML=Object.keys(priceList).map(a=>`
+        <div class="pl-row">
+            <div class="field"><label>${a}</label><input type="number" data-area="${a.replace(/"/g,'&quot;')}" class="pl-price" value="${priceList[a]||0}"/></div>
+            <button class="btn-del" onclick="removePriceRow('${a.replace(/'/g,"\\'")}')">×</button>
+        </div>`).join('');
+}
+function removePriceRow(a){ delete priceList[a]; renderPriceRows(); }
+function addPriceRow(){
+    const name=prompt('שם אזור חדש:'); if(!name) return;
+    if(!(name.trim() in priceList)) priceList[name.trim()]=0;
+    renderPriceRows();
+}
+async function savePriceList(){
+    document.querySelectorAll('.pl-price').forEach(inp=>{ priceList[inp.dataset.area]=Number(inp.value)||0; });
+    settings.packageDiscountPct=Number(document.getElementById('pl-discount').value)||0;
+    await persist();
+    closeModal('plo');
+    toast('✅ מחירון עודכן');
+    renderAreaChips(); updateQuoteSummary();
+}
+async function saveReminderTpl(){
+    settings.reminderTemplate=document.getElementById('s-reminder-tpl').value;
+    await persist();
+    toast('✅ תבנית ההודעה נשמרה');
+}
+
+// ── Appointments ──
+function fillTemplate(tpl,ap){
+    return (tpl||'').replaceAll('{שם}',ap.name).replaceAll('{תאריך}',ap.date||'').replaceAll('{שעה}',ap.time||'').replaceAll('{אזור}',ap.area||'');
+}
+function apptGroupLabel(dateStr){
+    const d=new Date(dateStr); d.setHours(0,0,0,0);
+    const t=new Date(); t.setHours(0,0,0,0);
+    const diff=Math.round((d-t)/86400000);
+    if(diff===0) return 'היום';
+    if(diff===1) return 'מחר';
+    if(diff<0) return 'עבר';
+    return d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'numeric'});
+}
+function renderAppts(){
+    const el=document.getElementById('appt-list');
+    const sorted=[...appointments].sort((a,b)=>(a.date+(a.time||'')).localeCompare(b.date+(b.time||'')));
+    if(!sorted.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">📅</div>אין תורים עתידיים</div>`; return; }
+    let lastLabel=null,html='';
+    sorted.forEach(ap=>{
+        const label=apptGroupLabel(ap.date);
+        if(label!==lastLabel){ html+=`<div class="appt-group-label">${label}</div>`; lastLabel=label; }
+        html+=apptCardHTML(ap);
+    });
+    el.innerHTML=html;
+}
+function apptCardHTML(ap){
+    const hp=ap.phone?.trim();
+    const waHref=hp?`https://wa.me/${phoneClean(hp)}?text=${encodeURIComponent(fillTemplate(settings.reminderTemplate,ap))}`:null;
+    return `<div class="card">
+        <div class="avatar av-ok">${ap.name.slice(0,1)}</div>
+        <div class="card-info" onclick="openApptEdit('${ap.id}')">
+            <div class="card-name">${ap.name}</div>
+            <div class="card-area">📍 ${ap.area||'—'} · 🕒 ${ap.time||'—'}</div>
+        </div>
+        <div class="card-actions">
+            ${waHref?`<a href="${waHref}" target="_blank" class="btn-wa" onclick="event.stopPropagation();toast('ווטסאפ נפתח 📱')">📱</a>`:''}
+            <button class="btn-treated" onclick="event.stopPropagation();completeAppt('${ap.id}')">✓ בוצע</button>
+            <button class="btn-del"     onclick="event.stopPropagation();delAppt('${ap.id}')">×</button>
+        </div>
+    </div>`;
+}
+function onApptNameInput(){
+    const name=document.getElementById('a-name').value.trim();
+    const c=data.find(x=>x.name===name);
+    if(c){
+        if(c.phone) document.getElementById('a-phone').value=c.phone;
+        if(c.area && !document.getElementById('a-area').value) document.getElementById('a-area').value=c.area;
+    }
+}
+function openApptAdd(){
+    document.getElementById('ao-title').textContent='תור חדש';
+    document.getElementById('a-id').value='';
+    document.getElementById('a-name').value='';
+    document.getElementById('a-phone').value='';
+    document.getElementById('a-area').value='';
+    document.getElementById('a-date').value=today();
+    document.getElementById('a-time').value='';
+    document.getElementById('a-notes').value='';
+    document.getElementById('ao').classList.add('open');
+}
+function openApptEdit(id){
+    const ap=appointments.find(x=>x.id===id); if(!ap) return;
+    document.getElementById('ao-title').textContent='עריכת תור';
+    document.getElementById('a-id').value=ap.id;
+    document.getElementById('a-name').value=ap.name;
+    document.getElementById('a-phone').value=ap.phone||'';
+    document.getElementById('a-area').value=ap.area||'';
+    document.getElementById('a-date').value=ap.date||'';
+    document.getElementById('a-time').value=ap.time||'';
+    document.getElementById('a-notes').value=ap.notes||'';
+    document.getElementById('ao').classList.add('open');
+}
+async function saveAppt(){
+    const id=document.getElementById('a-id').value;
+    const name=document.getElementById('a-name').value.trim();
+    const phone=document.getElementById('a-phone').value.trim();
+    const area=document.getElementById('a-area').value.trim();
+    const date=document.getElementById('a-date').value;
+    const time=document.getElementById('a-time').value;
+    const notes=document.getElementById('a-notes').value.trim();
+    if(!name||!date){alert('יש להכניס שם ותאריך');return}
+    if(id){const ap=appointments.find(x=>x.id===id);if(ap)Object.assign(ap,{name,phone,area,date,time,notes})}
+    else appointments.push({id:Date.now().toString(),name,phone,area,date,time,notes});
+    await persist(); closeModal('ao'); toast(`✅ תור נשמר`); renderAppts();
+}
+async function delAppt(id){
+    const ap=appointments.find(x=>x.id===id);
+    if(!confirm(`למחוק את התור של ${ap?.name}?`))return;
+    appointments=appointments.filter(x=>x.id!==id);
+    await persist(); renderAppts();
+}
+async function completeAppt(id){
+    const ap=appointments.find(x=>x.id===id); if(!ap) return;
+    let c=data.find(x=>x.name.trim()===ap.name.trim());
+    if(!c){
+        c={id:Date.now().toString(),name:ap.name,phone:ap.phone||'',area:ap.area||'',lastTreatment:today(),notes:ap.notes||'',paused:false,callsOnly:false};
+        data.push(c);
+    } else {
+        c.lastTreatment=today();
+        if(ap.area) c.area=ap.area;
+    }
+    appointments=appointments.filter(x=>x.id!==id);
+    await persist();
+    toast(`✅ ${ap.name} — טיפול נרשם`);
+    renderAppts(); render();
 }
 
 // ── Init ──
@@ -541,7 +879,7 @@ if ('serviceWorker' in navigator) {
 
 document.addEventListener('keydown',e=>{
     if(e.key==='Enter'&&document.getElementById('mo').classList.contains('open'))save();
-    if(e.key==='Escape'){close('mo');close('so')}
+    if(e.key==='Escape'){closeModal('mo');closeModal('so')}
 });
 
 // Auto-config from URL hash
@@ -556,7 +894,10 @@ document.addEventListener('keydown',e=>{
 })();
 
 (async()=>{
-    if(!localStorage.getItem(LS_DATA)){data=SEED.map(c=>({...c}));saveLocal(data)}
+    if(!localStorage.getItem(LS_DATA)){
+        data=SEED.map(c=>({...c}));appointments=[];priceList=defaultPriceList();settings=defaultSettings();
+        saveLocal();
+    }
     await loadData();render();
 })();
 </script>

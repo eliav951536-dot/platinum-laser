@@ -17,42 +17,86 @@ function daysSince(d) {
     return Math.floor((b - a) / 86400000);
 }
 
-async function getCustomers() {
+function tomorrowStr() {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+}
+
+function phoneClean(p) {
+    if (!p) return '';
+    let n = String(p).replace(/\D/g, '');
+    if (n.length === 9) n = '0' + n;
+    return n.replace(/^0/, '972');
+}
+
+function fillTemplate(tpl, a) {
+    return (tpl || '')
+        .replaceAll('{שם}', a.name)
+        .replaceAll('{תאריך}', a.date || '')
+        .replaceAll('{שעה}', a.time || '')
+        .replaceAll('{אזור}', a.area || '');
+}
+
+async function getData() {
     const res = await fetch(
         `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/customers.json`,
         { headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github.raw+json' } }
     );
     if (!res.ok) throw new Error(`GitHub ${res.status}`);
-    return res.json();
+    const j = await res.json();
+    return Array.isArray(j) ? { customers: j, appointments: [], settings: {} } : j;
 }
 
 async function main() {
-    const customers = await getCustomers();
+    const state = await getData();
+    const customers = state.customers || [];
+    const appts = state.appointments || [];
 
     const overdue = customers
         .filter(c => !c.paused)
         .filter(c => { const d = daysSince(c.lastTreatment); return d !== null && d >= DAYS; })
         .sort((a, b) => daysSince(b.lastTreatment) - daysSince(a.lastTreatment));
 
-    if (overdue.length === 0) {
-        console.log('✅ אין לקוחות שצריכים הודעה היום');
+    const tmrw = tomorrowStr();
+    const apptTomorrow = appts
+        .filter(a => a.date === tmrw)
+        .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+    if (overdue.length === 0 && apptTomorrow.length === 0) {
+        console.log('✅ אין מה לשלוח היום');
         return;
     }
 
     const date = new Date().toLocaleDateString('he-IL', { day:'numeric', month:'numeric', year:'numeric' });
     let msg = `🔔 *PLATINUM LASER — ${date}*\n`;
-    msg += `יש *${overdue.length}* לקוחות שצריכים הודעה:\n\n`;
 
-    overdue.forEach(c => {
-        const days = daysSince(c.lastTreatment);
-        const phone = c.phone ? ` | 0${String(c.phone).replace(/^972/,'')}` : '';
-        const area  = c.area  ? ` | ${c.area}` : '';
-        const tag   = c.callsOnly ? ' 📞' : '';
-        msg += `• *${c.name}*${tag} — ${days} ימים${area}${phone}\n`;
-    });
+    if (overdue.length) {
+        msg += `\nיש *${overdue.length}* לקוחות שצריכים הודעה:\n\n`;
+        overdue.forEach(c => {
+            const days = daysSince(c.lastTreatment);
+            const phone = c.phone ? ` | 0${String(c.phone).replace(/^972/,'')}` : '';
+            const area  = c.area  ? ` | ${c.area}` : '';
+            const tag   = c.callsOnly ? ' 📞' : '';
+            msg += `• *${c.name}*${tag} — ${days} ימים${area}${phone}\n`;
+        });
+    }
+
+    if (apptTomorrow.length) {
+        msg += `\n📅 *תורים למחר (${apptTomorrow.length}):*\n\n`;
+        apptTomorrow.forEach(a => {
+            const phone = a.phone ? ` | 0${String(a.phone).replace(/^972/,'')}` : '';
+            const area  = a.area  ? ` | ${a.area}` : '';
+            msg += `• *${a.name}* — ${a.time || ''}${area}${phone}\n`;
+            if (a.phone && state.settings?.reminderTemplate) {
+                const text = fillTemplate(state.settings.reminderTemplate, a);
+                msg += `  ↳ https://wa.me/${phoneClean(a.phone)}?text=${encodeURIComponent(text)}\n`;
+            }
+        });
+    }
 
     msg += `\n📱 ${APP_URL}`;
-    msg += `\n\n_הודעה ללקוחות כוללת קישור לקביעת תור: https://calmark.io/p/VTqTx_`;
+    if (overdue.length) msg += `\n\n_הודעה ללקוחות כוללת קישור לקביעת תור: https://calmark.io/p/VTqTx_`;
 
     const res = await fetch(`${BOT_URL}/group/send`, {
         method: 'POST',
