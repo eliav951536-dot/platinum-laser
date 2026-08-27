@@ -1,0 +1,7 @@
+{
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.61.0",
+    "web-push": "^3.6.7"
+  }
+}

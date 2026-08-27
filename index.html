@@ -73,7 +73,7 @@
         .modal h2{font-size:18px;color:var(--gold);margin-bottom:20px}
         .field{margin-bottom:14px}
         .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-        .field input,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:13px 14px;border-radius:9px;font-size:15px;font-family:inherit}
+        .field input,.field textarea,.field select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:13px 14px;border-radius:9px;font-size:15px;font-family:inherit}
         .field input:focus,.field textarea:focus{outline:none;border-color:var(--gold)}
         .field input[type="tel"],.field input[type="date"]{direction:ltr;text-align:right}
         .field textarea{resize:vertical;min-height:70px;font-size:14px}
@@ -226,6 +226,13 @@
             <button class="btn-primary" style="flex:1" onclick="saveReminderTpl()">שמירת תבנית</button>
             <button class="btn-secondary" style="flex:1" onclick="openPriceList()">💰 עריכת מחירון</button>
         </div>
+        <div class="field" style="margin-top:22px;border-top:1px solid var(--border);padding-top:18px">
+            <label>התראות בוקר במכשיר זה</label>
+            <div id="push-status" class="ss-bar no">🔕 התראות כבויות במכשיר הזה</div>
+        </div>
+        <div class="modal-btns">
+            <button class="btn-primary" style="flex:1" onclick="enablePushNotifications()">🔔 הפעל התראות</button>
+        </div>
     </div>
 </div>
 
@@ -244,6 +251,11 @@
     <div class="modal">
         <div class="mh"></div>
         <h2 id="ao-title">תור חדש</h2>
+        <div class="field"><label>לקוח קיים (אופציונלי)</label>
+            <select id="a-existing" onchange="onApptCustomerSelect()">
+                <option value="">-- הקלד שם חדש למטה, או בחר לקוח קיים --</option>
+            </select>
+        </div>
         <div class="field"><label>שם לקוח</label><input type="text" id="a-name" list="q-names" oninput="onApptNameInput()" autocomplete="off"/></div>
         <div class="field"><label>מספר טלפון</label><input type="tel" id="a-phone"/></div>
         <div class="field"><label>אזור טיפול</label><input type="text" id="a-area"/></div>
@@ -296,6 +308,7 @@ const DAYS=40, SOON=7;
 const LS_DATA='pl_v3', LS_CFG='pl_gh_cfg', LS_SHA='pl_gh_sha';
 const GH_OWNER='eliav951536-dot', GH_REPO='platinum-laser-data';
 const AREAS=['בין הגבות','גבות מלא','עצמות לחיים','צוואר','עורף','כתפיים','גב מלא','חצי יד','ידיים מלא','חזה','בטן','חצי רגל','רגליים מלאות'];
+const VAPID_PUBLIC_KEY='BN0K0H6dIiuu3jOoDTVehlcMU29uDPfyMoyxsMryHy70gT2PrnIRM0ew37Gb1weIUZFU14oww-MDL3Qcn8e2-Co';
 
 // ── GitHub API ──
 // Token is baked into the app itself (XOR-obfuscated, not plaintext) so sync
@@ -571,7 +584,51 @@ function openSettings(){
     document.getElementById('s-token').value=cfg()?.token||'';
     document.getElementById('s-reminder-tpl').value=settings.reminderTemplate||'';
     updSS();
+    updatePushStatus();
     document.getElementById('so').classList.add('open');
+}
+function urlBase64ToUint8Array(base64String){
+    const padding='='.repeat((4-base64String.length%4)%4);
+    const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+    const raw=atob(base64);
+    return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+async function updatePushStatus(){
+    const el=document.getElementById('push-status');
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+        el.className='ss-bar no'; el.textContent='🔕 הדפדפן הזה לא תומך בהתראות'; return;
+    }
+    try{
+        const reg=await navigator.serviceWorker.ready;
+        const sub=await reg.pushManager.getSubscription();
+        if(sub && (settings.pushSubscriptions||[]).some(s=>s.endpoint===sub.endpoint)){
+            el.className='ss-bar ok'; el.textContent='🟢 התראות פעילות במכשיר הזה';
+        } else {
+            el.className='ss-bar no'; el.textContent='🔕 התראות כבויות במכשיר הזה';
+        }
+    }catch{ el.className='ss-bar no'; el.textContent='🔕 התראות כבויות במכשיר הזה'; }
+}
+async function enablePushNotifications(){
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)){
+        alert('הדפדפן הזה לא תומך בהתראות. באייפון: יש להוסיף את האפליקציה למסך הבית קודם (שיתוף ← הוסף למסך הבית).');
+        return;
+    }
+    try{
+        const perm=await Notification.requestPermission();
+        if(perm!=='granted'){ toast('לא אושרה הרשאה להתראות'); updatePushStatus(); return; }
+        const reg=await navigator.serviceWorker.ready;
+        let sub=await reg.pushManager.getSubscription();
+        if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
+        const json=sub.toJSON();
+        if(!settings.pushSubscriptions) settings.pushSubscriptions=[];
+        if(!settings.pushSubscriptions.some(s=>s.endpoint===json.endpoint)) settings.pushSubscriptions.push(json);
+        await persist();
+        toast('✅ התראות הופעלו!');
+        updatePushStatus();
+    }catch(err){
+        console.error('push subscribe failed',err);
+        toast('שגיאה בהפעלת התראות');
+    }
 }
 function updSS(){
     const el=document.getElementById('ss-status');
@@ -818,27 +875,46 @@ function onApptNameInput(){
         if(c.area && !document.getElementById('a-area').value) document.getElementById('a-area').value=c.area;
     }
 }
+function populateExistingCustomerSelect(){
+    const sel=document.getElementById('a-existing');
+    const sorted=[...data].sort((a,b)=>a.name.localeCompare(b.name,'he'));
+    sel.innerHTML='<option value="">-- הקלד שם חדש למטה, או בחר לקוח קיים --</option>'
+        + sorted.map(c=>`<option value="${c.id}">${c.name}${c.phone?' — '+c.phone:''}</option>`).join('');
+}
+function onApptCustomerSelect(){
+    const id=document.getElementById('a-existing').value;
+    if(!id) return;
+    const c=data.find(x=>x.id===id);
+    if(!c) return;
+    document.getElementById('a-name').value=c.name;
+    document.getElementById('a-phone').value=c.phone||'';
+    if(c.area) document.getElementById('a-area').value=c.area;
+}
 function openApptAdd(){
     document.getElementById('ao-title').textContent='תור חדש';
     document.getElementById('a-id').value='';
+    document.getElementById('a-existing').value='';
     document.getElementById('a-name').value='';
     document.getElementById('a-phone').value='';
     document.getElementById('a-area').value='';
     document.getElementById('a-date').value=today();
     document.getElementById('a-time').value='';
     document.getElementById('a-notes').value='';
+    populateExistingCustomerSelect();
     document.getElementById('ao').classList.add('open');
 }
 function openApptEdit(id){
     const ap=appointments.find(x=>x.id===id); if(!ap) return;
     document.getElementById('ao-title').textContent='עריכת תור';
     document.getElementById('a-id').value=ap.id;
+    document.getElementById('a-existing').value='';
     document.getElementById('a-name').value=ap.name;
     document.getElementById('a-phone').value=ap.phone||'';
     document.getElementById('a-area').value=ap.area||'';
     document.getElementById('a-date').value=ap.date||'';
     document.getElementById('a-time').value=ap.time||'';
     document.getElementById('a-notes').value=ap.notes||'';
+    populateExistingCustomerSelect();
     document.getElementById('ao').classList.add('open');
 }
 async function saveAppt(){
