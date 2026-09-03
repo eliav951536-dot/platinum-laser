@@ -724,13 +724,12 @@ function render(){
     const active=f.filter(c=>!c.paused), paused=f.filter(c=>c.paused);
     const urg=[],rest=[];
     active.forEach(c=>{const d=daysSince(c.lastTreatment);(d!==null&&d>=DAYS?urg:rest).push({...c,_d:d})});
-    urg.sort((a,b)=>b._d-a._d);
-    rest.sort((a,b)=>{if(a._d===null)return 1;if(b._d===null)return-1;return b._d-a._d});
     const soonN=rest.filter(c=>c._d!==null&&c._d>=DAYS-SOON).length;
     document.getElementById('st-urg').textContent=urg.length;
     document.getElementById('st-tot').textContent=data.length;
     document.getElementById('st-soon').textContent=soonN;
     let items=curTab==='urgent'?urg:curTab==='ok'?[...rest,...paused]:[...urg,...rest,...paused];
+    items=[...items].sort((a,b)=>a.name.localeCompare(b.name,'he'));
     document.getElementById('list').innerHTML=items.length
         ?items.map(cardHTML).join('')
         :`<div class="empty"><div class="empty-icon">${curTab==='urgent'?'✅':'👤'}</div>${curTab==='urgent'?'אין לקוחות שצריכים הודעה':'לא נמצאו לקוחות'}</div>`;
