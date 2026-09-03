@@ -343,13 +343,30 @@ async function ghRead(){
     return JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));
 }
 
-async function ghWrite(){
-    const c=cfg(); if(!c) return;
+async function ghPut(){
+    const c=cfg();
     const sha=localStorage.getItem(LS_SHA);
     const content=btoa(unescape(encodeURIComponent(JSON.stringify(packState(),null,2))));
     const body=JSON.stringify({message:'update',content,...(sha?{sha}:{})});
-    const r=await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/customers.json`,
+    return fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/customers.json`,
         {method:'PUT',headers:{...ghH(c.token),'Content-Type':'application/json'},body});
+}
+async function ghWrite(){
+    const c=cfg(); if(!c) return;
+    let r=await ghPut();
+    if(r.status===409){
+        // Another device wrote first and our locally-held sha is stale — that
+        // used to fail silently and drop this device's change. Instead:
+        // pull the latest remote, merge our customers into it (per-record,
+        // most recent lastTreatment wins), then retry with the fresh sha.
+        const remote=await ghRead();
+        if(remote){
+            const remoteCustomers=Array.isArray(remote)?remote:(remote.customers||[]);
+            data=mergeCustomers(data,remoteCustomers);
+            saveLocal();
+            r=await ghPut();
+        }
+    }
     if(!r.ok){console.error('ghWrite',r.status,await r.text());return}
     const j=await r.json();
     localStorage.setItem(LS_SHA,j.content.sha);
@@ -390,8 +407,8 @@ function mergeCustomers(local, remote){
         const r = byId.get(c.id);
         if (!r) { byId.set(c.id, c); return; }
         const dl = daysSinceRaw(c.lastTreatment), dr = daysSinceRaw(r.lastTreatment);
-        // lower "days since epoch-diff" means more recent; null = never treated (oldest)
-        const localNewer = dl !== null && (dr === null || dl < dr);
+        // higher timestamp means a later calendar date, i.e. more recent; null = never treated (oldest)
+        const localNewer = dl !== null && (dr === null || dl > dr);
         byId.set(c.id, localNewer ? c : r);
     });
     return Array.from(byId.values());
